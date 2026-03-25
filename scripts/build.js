@@ -8,29 +8,44 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const isWatch = process.argv.includes('--watch');
 
 /** @type {import('esbuild').BuildOptions} */
-const buildOptions = {
-  entryPoints: [join(__dirname, '../src/index.ts')],
+const sharedOptions = {
   bundle: true,
   platform: 'node',
   target: 'node18',
-  outfile: join(__dirname, '../dist/index.js'),
   format: 'esm',
-  // Remove banner for ESM format - shebang will be added by npm/npx
-  // banner: {
-  //   js: '#!/usr/bin/env node\n',
-  // },
   packages: 'external', // Don't bundle node_modules
   sourcemap: true,
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const buildOptions = {
+  ...sharedOptions,
+  entryPoints: [join(__dirname, '../src/index.ts')],
+  outfile: join(__dirname, '../dist/index.js'),
+  external: ['./setup.js'], // setup is a separate entry point
+};
+
+/** @type {import('esbuild').BuildOptions} */
+const setupOptions = {
+  ...sharedOptions,
+  entryPoints: [join(__dirname, '../src/setup.ts')],
+  outfile: join(__dirname, '../dist/setup.js'),
+};
+
 if (isWatch) {
-  const context = await esbuild.context(buildOptions);
-  await context.watch();
+  const [ctx1, ctx2] = await Promise.all([
+    esbuild.context(buildOptions),
+    esbuild.context(setupOptions),
+  ]);
+  await Promise.all([ctx1.watch(), ctx2.watch()]);
   console.log('Watching for changes...');
 } else {
-  await esbuild.build(buildOptions);
-  
-  // Make the file executable on non-Windows platforms
+  await Promise.all([
+    esbuild.build(buildOptions),
+    esbuild.build(setupOptions),
+  ]);
+
+  // Make the files executable on non-Windows platforms
   if (process.platform !== 'win32') {
     const { chmod } = await import('fs/promises');
     await chmod(buildOptions.outfile, 0o755);
