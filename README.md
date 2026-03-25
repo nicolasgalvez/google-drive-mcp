@@ -74,13 +74,41 @@ and Budget Spreadsheet template.
 
 ## Google Cloud Setup
 
-### 1. Create a Google Cloud Project
+### Interactive Setup Wizard (Recommended)
+
+Run the setup wizard to walk through all steps:
+
+```bash
+npm run setup
+```
+
+The wizard offers two modes:
+
+- **Manual** — opens each GCP Console page in your browser with step-by-step instructions
+- **Claude-assisted** — automates the browser steps using [Claude Code](https://claude.ai/code) + the [Chrome extension](https://claude.ai/chrome). Requires the `claude` CLI to be installed.
+
+The wizard handles project creation (via `gcloud` if available), API enablement, OAuth consent screen configuration, credential download, and authentication.
+
+You can also pre-fill answers via CLI flags to skip prompts:
+
+```bash
+npm run setup -- --project-id my-project --mode claude
+npm run setup -- --project-id my-project --credentials ~/Downloads/client_secret*.json --no-auth
+```
+
+Available flags: `--project-id`, `--credentials`, `--mode` (manual/claude), `--gcloud-account`, `--skip-browser`, `--skip-gcloud`, `--create-project`, `--run-auth`, `--no-auth`.
+
+### Manual Google Cloud Setup
+
+If you prefer to set things up manually:
+
+#### 1. Create a Google Cloud Project
 - Go to the [Google Cloud Console](https://console.cloud.google.com)
 - Click "Select a project" > "New Project"
 - Name your project (e.g., "Google Drive MCP")
 - Note the Project ID for later
 
-### 2. Enable Required APIs
+#### 2. Enable Required APIs
 - In your project, go to "APIs & Services" > "Library"
 - Search for and enable each of these APIs:
   - **Google Drive API**
@@ -90,7 +118,7 @@ and Budget Spreadsheet template.
   - **Google Calendar API**
 - Wait for each API to be enabled before proceeding
 
-### 3. Configure OAuth Consent Screen
+#### 3. Configure OAuth Consent Screen
 - Go to "APIs & Services" > "OAuth consent screen"
 - Under 'Branding' fill in the required fields:
   - App name: "My Personal Google Drive MCP"
@@ -109,7 +137,7 @@ and Budget Spreadsheet template.
   - `.../auth/calendar`
   - `.../auth/calendar.events`
 
-### 4. Create OAuth 2.0 Credentials
+#### 4. Create OAuth 2.0 Credentials
 - Go to "APIs & Services" > "Credentials"
 - Click "+ CREATE CREDENTIALS" > "OAuth client ID"
 - Application type: **Desktop app** (Important!)

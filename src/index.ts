@@ -364,6 +364,7 @@ Usage:
   npx @yourusername/google-drive-mcp [command]
 
 Commands:
+  setup    Interactive setup wizard (GCP project, APIs, OAuth)
   auth     Run the authentication flow
   start    Start the MCP server (default)
   version  Show version information
@@ -453,6 +454,30 @@ function parseCliArgs(): { command: string | undefined } {
   return { command };
 }
 
+function parseSetupArgs(): Record<string, any> {
+  const args = process.argv.slice(2);
+  const opts: Record<string, any> = {};
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    const next = args[i + 1];
+
+    switch (arg) {
+      case '--project-id':    opts.projectId = next; i++; break;
+      case '--credentials':   opts.credentialsPath = next; i++; break;
+      case '--mode':          opts.mode = next; i++; break;
+      case '--gcloud-account': opts.gcloudAccount = next; i++; break;
+      case '--skip-browser':  opts.skipBrowser = true; break;
+      case '--skip-gcloud':   opts.skipGcloud = true; break;
+      case '--create-project': opts.createProject = true; break;
+      case '--run-auth':      opts.runAuth = true; break;
+      case '--no-auth':       opts.runAuth = false; break;
+    }
+  }
+
+  return opts;
+}
+
 async function main() {
   const { command } = parseCliArgs();
 
@@ -460,6 +485,12 @@ async function main() {
     case "auth":
       await runAuthServer();
       break;
+    case "setup": {
+      const { runSetup } = await import('./setup.js');
+      const setupOpts = parseSetupArgs();
+      await runSetup(setupOpts);
+      break;
+    }
     case "start":
     case undefined:
       try {
