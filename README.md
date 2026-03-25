@@ -375,6 +375,40 @@ Add the server to your Claude Desktop configuration:
 
 **Note**: Replace `/path/to/your/gcp-oauth.keys.json` with the actual path to your OAuth credentials file.
 
+### Using Claude Code:
+
+```bash
+claude mcp add -s user google-drive node /path/to/google-drive-mcp/dist/index.js
+```
+
+### Multiple Google Accounts
+
+You can run separate instances for different Google accounts by pointing each to its own credentials and token files:
+
+```bash
+# Personal account
+claude mcp add -s user google-drive-personal \
+  -e GOOGLE_DRIVE_OAUTH_CREDENTIALS=$HOME/.config/google-drive-mcp/personal/gcp-oauth.keys.json \
+  -e GOOGLE_DRIVE_MCP_TOKEN_PATH=$HOME/.config/google-drive-mcp/personal/tokens.json \
+  node /path/to/google-drive-mcp/dist/index.js
+
+# Work account
+claude mcp add -s user google-drive-work \
+  -e GOOGLE_DRIVE_OAUTH_CREDENTIALS=$HOME/.config/google-drive-mcp/work/gcp-oauth.keys.json \
+  -e GOOGLE_DRIVE_MCP_TOKEN_PATH=$HOME/.config/google-drive-mcp/work/tokens.json \
+  node /path/to/google-drive-mcp/dist/index.js
+```
+
+To set up each account, run the setup wizard and save the credentials to the appropriate directory, then authenticate with the env vars set:
+
+```bash
+GOOGLE_DRIVE_OAUTH_CREDENTIALS=~/.config/google-drive-mcp/work/gcp-oauth.keys.json \
+GOOGLE_DRIVE_MCP_TOKEN_PATH=~/.config/google-drive-mcp/work/tokens.json \
+node dist/index.js auth
+```
+
+The same approach works with Claude Desktop — add multiple entries in the config JSON with different `env` values.
+
 ## Available Tools
 
 ### Search and Navigation
