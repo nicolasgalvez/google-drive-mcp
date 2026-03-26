@@ -20,8 +20,8 @@ function parseCredentialsFile(keys: Record<string, unknown>): OAuthCredentials {
   }
 }
 
-async function loadCredentialsFromFile(): Promise<OAuthCredentials> {
-  const paths = getKeysFilePaths();
+async function loadCredentialsFromFile(accountSlug?: string): Promise<OAuthCredentials> {
+  const paths = getKeysFilePaths(accountSlug);
 
   for (const keysPath of paths) {
     try {
@@ -41,9 +41,9 @@ async function loadCredentialsFromFile(): Promise<OAuthCredentials> {
   throw new Error(`Credentials file not found. Searched: ${paths.join(', ')}`);
 }
 
-async function loadCredentialsWithFallback(): Promise<OAuthCredentials> {
+async function loadCredentialsWithFallback(accountSlug?: string): Promise<OAuthCredentials> {
   try {
-    return await loadCredentialsFromFile();
+    return await loadCredentialsFromFile(accountSlug);
   } catch (fileError) {
     // Check for legacy client_secret.json
     const legacyPath = process.env.GOOGLE_CLIENT_SECRET_PATH || 'client_secret.json';
@@ -67,9 +67,9 @@ async function loadCredentialsWithFallback(): Promise<OAuthCredentials> {
   }
 }
 
-export async function initializeOAuth2Client(): Promise<OAuth2Client> {
+export async function initializeOAuth2Client(accountSlug?: string): Promise<OAuth2Client> {
   try {
-    const credentials = await loadCredentialsWithFallback();
+    const credentials = await loadCredentialsWithFallback(accountSlug);
     
     // Use the first redirect URI as the default for the base client
     return new OAuth2Client({

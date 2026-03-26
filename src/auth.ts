@@ -22,7 +22,7 @@ export {
  * Authenticate and return OAuth2 client
  * This is the main entry point for authentication in the MCP server
  */
-export async function authenticate(): Promise<any> {
+export async function authenticate(accountSlug?: string): Promise<any> {
   console.error('Initializing authentication...');
 
   // Priority 1: Service account
@@ -39,9 +39,9 @@ export async function authenticate(): Promise<any> {
   // Priority 3: Existing local OAuth flow
 
   // Initialize OAuth2 client
-  const oauth2Client = await initializeOAuth2Client();
-  const tokenManager = new TokenManager(oauth2Client);
-  
+  const oauth2Client = await initializeOAuth2Client(accountSlug);
+  const tokenManager = new TokenManager(oauth2Client, accountSlug);
+
   // Try to validate existing tokens
   if (await tokenManager.validateTokens()) {
     console.error('Authentication successful - using existing tokens');
@@ -52,12 +52,12 @@ export async function authenticate(): Promise<any> {
     });
     return oauth2Client;
   }
-  
+
   // No valid tokens, need to authenticate
   console.error('\n🔐 No valid authentication tokens found.');
   console.error('Starting authentication flow...\n');
-  
-  const authServer = new AuthServer(oauth2Client);
+
+  const authServer = new AuthServer(oauth2Client, accountSlug);
   const authSuccess = await authServer.start(true);
   
   if (!authSuccess) {
@@ -82,16 +82,16 @@ export async function authenticate(): Promise<any> {
  * Manual authentication command
  * Used when running "npm run auth" or when the user needs to re-authenticate
  */
-export async function runAuthCommand(): Promise<void> {
+export async function runAuthCommand(accountSlug?: string): Promise<void> {
   try {
     console.error('Google Drive MCP - Manual Authentication');
     console.error('════════════════════════════════════════\n');
-    
+
     // Initialize OAuth client
-    const oauth2Client = await initializeOAuth2Client();
-    
+    const oauth2Client = await initializeOAuth2Client(accountSlug);
+
     // Create and start the auth server
-    const authServer = new AuthServer(oauth2Client);
+    const authServer = new AuthServer(oauth2Client, accountSlug);
     
     // Start with browser opening (true by default)
     const success = await authServer.start(true);

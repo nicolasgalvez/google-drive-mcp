@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as os from 'os';
 import { fileURLToPath } from 'url';
+import { getAccountCredentialsPath, getAccountTokenPath } from '../accounts.js';
 
 // Helper to get the project root directory reliably
 function getProjectRoot(): string {
@@ -20,11 +21,16 @@ function getConfigDir(): string {
 
 // Returns the absolute path for the saved token file.
 // Uses XDG Base Directory spec with fallback to home directory
-export function getSecureTokenPath(): string {
+export function getSecureTokenPath(accountSlug?: string): string {
   // Check for custom token path environment variable first
   const customTokenPath = process.env.GOOGLE_DRIVE_MCP_TOKEN_PATH;
   if (customTokenPath) {
     return path.resolve(customTokenPath);
+  }
+
+  // Account-specific path
+  if (accountSlug) {
+    return getAccountTokenPath(accountSlug);
   }
 
   return path.join(getConfigDir(), 'tokens.json');
@@ -49,12 +55,17 @@ export function getAdditionalLegacyPaths(): string[] {
 // 1. Environment variable GOOGLE_DRIVE_OAUTH_CREDENTIALS (highest priority)
 // 2. Config directory ~/.config/google-drive-mcp/gcp-oauth.keys.json
 // 3. Project root directory (legacy fallback)
-export function getKeysFilePaths(): string[] {
+export function getKeysFilePaths(accountSlug?: string): string[] {
   const paths: string[] = [];
 
   const envCredentialsPath = process.env.GOOGLE_DRIVE_OAUTH_CREDENTIALS;
   if (envCredentialsPath) {
     paths.push(path.resolve(envCredentialsPath));
+  }
+
+  // Account-specific path takes priority over default
+  if (accountSlug) {
+    paths.push(getAccountCredentialsPath(accountSlug));
   }
 
   paths.push(path.join(getConfigDir(), 'gcp-oauth.keys.json'));
