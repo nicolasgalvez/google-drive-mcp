@@ -53,6 +53,7 @@ const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 // Global auth client - will be initialized on first use
 let authClient: any = null;
 let authenticationPromise: Promise<any> | null = null;
+let activeAccountSlug: string | undefined;
 
 // Get package version
 const __filename = fileURLToPath(import.meta.url);
@@ -187,7 +188,7 @@ async function ensureAuthenticated() {
   }
 
   log('Initializing authentication');
-  authenticationPromise = authenticate();
+  authenticationPromise = authenticate(activeAccountSlug);
   try {
     authClient = await authenticationPromise;
     log('Authentication complete');
@@ -395,10 +396,10 @@ function showVersion(): void {
   console.log(`Google Drive MCP Server v${VERSION}`);
 }
 
-async function runAuthServer(): Promise<void> {
+async function runAuthServer(accountSlug?: string): Promise<void> {
   try {
-    const oauth2Client = await initializeOAuth2Client();
-    const authServerInstance = new AuthServer(oauth2Client);
+    const oauth2Client = await initializeOAuth2Client(accountSlug);
+    const authServerInstance = new AuthServer(oauth2Client, accountSlug);
     const success = await authServerInstance.start(true);
 
     if (!success && !authServerInstance.authCompletedSuccessfully) {
@@ -433,12 +434,19 @@ async function runAuthServer(): Promise<void> {
 // MAIN EXECUTION
 // -----------------------------------------------------------------------------
 
-function parseCliArgs(): { command: string | undefined } {
+function parseCliArgs(): { command: string | undefined; account?: string } {
   const args = process.argv.slice(2);
   let command: string | undefined;
+  let account: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
+
+    if (arg === '--account' && args[i + 1]) {
+      account = args[i + 1];
+      i++;
+      continue;
+    }
 
     if (arg === '--version' || arg === '-v' || arg === '--help' || arg === '-h') {
       command = arg;
@@ -451,7 +459,7 @@ function parseCliArgs(): { command: string | undefined } {
     }
   }
 
-  return { command };
+  return { command, account };
 }
 
 function parseSetupArgs(): Record<string, any> {
@@ -479,21 +487,52 @@ function parseSetupArgs(): Record<string, any> {
 }
 
 async function main() {
-  const { command } = parseCliArgs();
+  const { command, account } = parseCliArgs();
+
+  // Resolve account slug for commands that need it
+  let accountSlug: string | undefined;
+  if (account) {
+    const { slugifyEmail, getDefaultAccount } = await import('./accounts.js');
+    accountSlug = slugifyEmail(account);
+  }
 
   switch (command) {
     case "auth":
-      await runAuthServer();
+      await runAuthServer(accountSlug);
       break;
+    case "accounts": {
+      const { listAccounts } = await import('./accounts.js');
+      const accounts = listAccounts();
+      if (accounts.length === 0) {
+        console.log('No accounts configured. Run: npm run setup');
+      } else {
+        console.log('Configured accounts:\n');
+        for (const a of accounts) {
+          const marker = a.default ? ' (default)' : '';
+          console.log(`  ${a.email}${marker}`);
+          console.log(`    slug: ${a.slug}`);
+        }
+      }
+      break;
+    }
     case "setup": {
       const { runSetup } = await import('./setup.js');
       const setupOpts = parseSetupArgs();
+      if (account) setupOpts.account = account;
       await runSetup(setupOpts);
       break;
     }
     case "start":
     case undefined:
       try {
+        // Set account for lazy auth in ensureAuthenticated()
+        if (accountSlug) {
+          activeAccountSlug = accountSlug;
+        } else if (!account) {
+          // No --account flag: use default account if one exists
+          const { getDefaultAccount } = await import('./accounts.js');
+          activeAccountSlug = getDefaultAccount() || undefined;
+        }
         console.error("Starting Google Drive MCP server...");
         const transport = new StdioServerTransport();
         await server.connect(transport);

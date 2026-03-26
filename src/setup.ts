@@ -14,11 +14,16 @@ import { execSync } from 'child_process';
 import { existsSync, mkdirSync, copyFileSync, readFileSync } from 'fs';
 import { resolve, join, dirname } from 'path';
 import { homedir } from 'os';
+import {
+  slugifyEmail, addAccount,
+  getAccountCredentialsPath, getAccountTokenPath,
+} from './accounts.js';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
 export interface SetupOptions {
   mode?: 'manual' | 'claude';
+  account?: string;  // email address for account namespacing
   gcloudAccount?: string;
   skipGcloud?: boolean;
   projectId?: string;
@@ -523,6 +528,14 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
   console.log(`${DIM}This will walk you through creating a Google Cloud project,`);
   console.log(`enabling APIs, and configuring OAuth credentials.${RESET}\n`);
 
+  // Account — ask for email to namespace credential storage
+  const accountEmail = opts.account || await input({
+    message: 'Google account email (for credential storage):',
+  });
+  const accountSlug = slugifyEmail(accountEmail);
+  addAccount(accountEmail);
+  success(`Account: ${accountEmail} (${accountSlug})`);
+
   // Mode selection
   const mode = opts.mode || await select({
     message: 'How would you like to complete the browser setup steps?',
@@ -599,7 +612,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
     }
     const credentialsPath = matches[0]; // most recent
     success(`Found credentials: ${credentialsPath.replace(homedir(), '~')}`);
-    storeCredentials(credentialsPath);
+    storeCredentials(credentialsPath, getAccountCredentialsPath(accountSlug));
 
     // Auth
     heading('Step: Authenticate');
@@ -611,7 +624,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
     if (shouldRunAuth) {
       console.log('  Starting OAuth flow...\n');
       const { runAuthCommand } = await import('./auth.js');
-      await runAuthCommand();
+      await runAuthCommand(accountSlug);
     } else {
       console.log(`  Run ${BOLD}npm run auth${RESET} (or ${BOLD}npx google-drive-mcp auth${RESET}) when ready.\n`);
     }
@@ -644,7 +657,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
   }
 
   heading('Step 5: Storing Credentials');
-  storeCredentials(credentialsPath);
+  storeCredentials(credentialsPath, getAccountCredentialsPath(accountSlug));
 
   heading('Step 6: Authenticate');
   const shouldRunAuth = opts.runAuth ?? await confirm({
@@ -655,7 +668,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
   if (shouldRunAuth) {
     console.log('  Starting OAuth flow...\n');
     const { runAuthCommand } = await import('./auth.js');
-    await runAuthCommand();
+    await runAuthCommand(accountSlug);
   } else {
     console.log(`  Run ${BOLD}npm run auth${RESET} (or ${BOLD}npx google-drive-mcp auth${RESET}) when ready.\n`);
   }

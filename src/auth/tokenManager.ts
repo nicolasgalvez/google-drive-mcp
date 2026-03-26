@@ -8,9 +8,9 @@ export class TokenManager {
   private oauth2Client: OAuth2Client;
   private tokenPath: string;
 
-  constructor(oauth2Client: OAuth2Client) {
+  constructor(oauth2Client: OAuth2Client, accountSlug?: string) {
     this.oauth2Client = oauth2Client;
-    this.tokenPath = getSecureTokenPath();
+    this.tokenPath = getSecureTokenPath(accountSlug);
     this.setupTokenRefresh();
   }
 

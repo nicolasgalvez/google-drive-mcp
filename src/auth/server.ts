@@ -17,9 +17,9 @@ export class AuthServer {
   private portRange: { start: number; end: number };
   public authCompletedSuccessfully = false; // Flag for standalone script
 
-  constructor(oauth2Client: OAuth2Client) {
+  constructor(oauth2Client: OAuth2Client, accountSlug?: string) {
     this.baseOAuth2Client = oauth2Client;
-    this.tokenManager = new TokenManager(oauth2Client);
+    this.tokenManager = new TokenManager(oauth2Client, accountSlug);
     this.app = express();
     this.portRange = { start: 3000, end: 3004 };
     this.setupRoutes();
