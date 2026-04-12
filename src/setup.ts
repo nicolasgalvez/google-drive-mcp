@@ -122,10 +122,12 @@ export function resolveFilePath(input: string): string | null {
   return existsSync(abs) ? abs : null;
 }
 
-export function buildClaudeAssistedPlan(projectId: string): object {
+export function buildClaudeAssistedPlan(projectId: string, accountEmail?: string): object {
+  const email = accountEmail || 'the logged-in user\'s email';
   return {
     description: 'Google Drive MCP — browser setup steps for Claude Code to automate via Chrome extension',
     project: projectId,
+    accountEmail: accountEmail || null,
     credentialsDestination: getDefaultCredentialsPath(),
     steps: [
       {
@@ -142,8 +144,8 @@ export function buildClaudeAssistedPlan(projectId: string): object {
         url: consentBrandingUrl(projectId),
         actions: [
           'Set "App name" to "Google Drive MCP"',
-          'Set "User support email" to the logged-in user\'s email',
-          'Set "Developer contact information" to the same email',
+          `Set "User support email" to "${email}"`,
+          `Set "Developer contact information" to "${email}"`,
           'Click "Save"',
         ],
       },
@@ -154,7 +156,7 @@ export function buildClaudeAssistedPlan(projectId: string): object {
         actions: [
           'User type should be "External" (or "Internal" for Google Workspace)',
           'Click "+ Add Users"',
-          'Add the logged-in user\'s email as a test user',
+          `Add "${email}" as a test user`,
           'Click "Save"',
         ],
       },
@@ -408,6 +410,7 @@ export async function enableApis(
  */
 async function configureConsent(
   projectId: string,
+  accountEmail: string,
   opts: Pick<SetupOptions, 'skipBrowser'> = {},
 ): Promise<void> {
   heading('Step 3: OAuth Consent Screen');
@@ -419,8 +422,8 @@ async function configureConsent(
   if (!opts.skipBrowser) await openInBrowser(consentBrandingUrl(projectId));
   instructions([
     '1. Set App name (e.g. "Google Drive MCP")',
-    '2. Set User support email to your email',
-    '3. Set Developer contact to your email',
+    `2. Set User support email to ${accountEmail}`,
+    `3. Set Developer contact to ${accountEmail}`,
     '4. Click "Save"',
   ]);
   await pressEnter();
@@ -432,7 +435,7 @@ async function configureConsent(
   instructions([
     '1. Choose "External" (or "Internal" for Workspace)',
     '2. Click "+ Add Users"',
-    '3. Add your Google email as a test user',
+    `3. Add ${accountEmail} as a test user`,
     '4. Click "Save"',
   ]);
   await pressEnter();
@@ -565,7 +568,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
     }
     const projectId = opts.projectId || await input({ message: 'Enter the project ID:' });
 
-    const plan = buildClaudeAssistedPlan(projectId);
+    const plan = buildClaudeAssistedPlan(projectId, accountEmail);
     const steps = (plan as any).steps as { id: string; name: string; url: string; actions: string[] }[];
 
     heading('Claude-Assisted Setup');
@@ -652,7 +655,7 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
   if (opts.credentialsPath) {
     credentialsPath = opts.credentialsPath;
   } else {
-    await configureConsent(projectId, opts);
+    await configureConsent(projectId, accountEmail, opts);
     credentialsPath = await resolveCredentials(projectId, opts);
   }
 
