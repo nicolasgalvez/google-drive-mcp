@@ -260,11 +260,23 @@ test('buildClaudeAssistedPlan includes credentialsDestination', () => {
   assert.ok(plan.credentialsDestination.includes('gcp-oauth.keys.json'));
 });
 
-test('buildClaudeAssistedPlan does not include hardcoded emails', () => {
+test('buildClaudeAssistedPlan does not include hardcoded emails when no email provided', () => {
   const plan = buildClaudeAssistedPlan('my-project') as any;
   const json = JSON.stringify(plan);
   assert.ok(!json.includes('@gmail.com'));
   assert.ok(!json.includes('@simaccweb.com'));
+});
+
+test('buildClaudeAssistedPlan includes account email in branding and audience steps', () => {
+  const plan = buildClaudeAssistedPlan('my-project', 'test@example.com') as any;
+  const branding = plan.steps.find((s: any) => s.id === 'branding');
+  const audience = plan.steps.find((s: any) => s.id === 'audience');
+
+  assert.ok(branding.actions.some((a: string) => a.includes('test@example.com')),
+    'branding should include account email for support email');
+  assert.ok(audience.actions.some((a: string) => a.includes('test@example.com')),
+    'audience should include account email as test user');
+  assert.equal(plan.accountEmail, 'test@example.com');
 });
 
 // ===========================================================================
