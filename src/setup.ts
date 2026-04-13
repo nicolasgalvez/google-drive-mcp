@@ -527,9 +527,22 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
 
   // ── Credentials file ────────────────────────────────────────────────────
   if (!opts.step || opts.step === 'credentials') {
-    const credentialsPath = opts.credentialsPath
-      ? opts.credentialsPath
-      : await resolveCredentials(projectId, opts);
+    let credentialsPath: string;
+    if (opts.credentialsPath) {
+      credentialsPath = opts.credentialsPath;
+    } else if (mode === 'claude') {
+      // Auto-pick most recent credential file
+      const matches = findMatchingFiles('~/Downloads/client_secret*.json');
+      if (matches.length === 0) {
+        warn('No client_secret*.json found in ~/Downloads.');
+        console.log(`  Download credentials and run: npm run setup -- --account ${accountEmail} --step credentials`);
+        process.exit(1);
+      }
+      credentialsPath = matches[0];
+      success(`Found credentials: ${credentialsPath.replace(homedir(), '~')}`);
+    } else {
+      credentialsPath = await resolveCredentials(projectId, opts);
+    }
 
     heading('Storing Credentials');
     storeCredentials(credentialsPath, getAccountCredentialsPath(accountSlug));
