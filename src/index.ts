@@ -503,9 +503,12 @@ async function main() {
       break;
     case "accounts": {
       const { listAccounts, getAccountSetup } = await import('./accounts.js');
-      const accounts = listAccounts();
+      let accounts = listAccounts();
+      if (account) {
+        accounts = accounts.filter(a => a.email === account || a.slug === account);
+      }
       if (accounts.length === 0) {
-        console.log('No accounts configured. Run: npm run setup');
+        console.log(account ? `Account "${account}" not found.` : 'No accounts configured. Run: npm run setup');
       } else {
         const ALL_STEPS = ['enable-apis', 'branding', 'audience', 'scopes', 'credentials', 'auth'] as const;
         console.log('Configured accounts:\n');
