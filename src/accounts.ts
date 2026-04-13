@@ -70,6 +70,23 @@ function writeRegistry(registry: AccountRegistry): void {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
+ * Derive an MCP server name from an email.
+ * nicholas.galvez@gmail.com → google-nicholas-galvez-gmail
+ * nick@simaccweb.com → google-nick-simaccweb
+ */
+export function mcpServerName(email: string): string {
+  const lower = email.toLowerCase();
+  const [user, domain] = lower.split('@');
+  // Drop the TLD (.com, .co.uk, etc.) — keep the domain name
+  const domainParts = domain.split('.');
+  const domainName = domainParts.length > 2
+    ? domainParts.slice(0, -1).join('-')  // mail.company.co.uk → mail-company-co
+    : domainParts[0];                      // gmail.com → gmail
+  const cleanUser = user.replace(/[.+]/g, '-');
+  return `google-${cleanUser}-${domainName}`;
+}
+
+/**
  * Convert an email address to a filesystem-safe slug.
  * nick@simaccweb.com → nick-at-simaccweb-com
  */
