@@ -497,6 +497,12 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
 
   // ── Execute steps — same loop for both modes ────────────────────────────
   for (const step of steps) {
+    // Skip steps already done (unless explicitly targeted with --step)
+    if (!opts.step && savedSetup?.steps[step.id] === 'done') {
+      console.log(`  ${DIM}${step.name} — already done, skipping${RESET}`);
+      continue;
+    }
+
     heading(step.name);
 
     try {
