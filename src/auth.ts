@@ -63,18 +63,7 @@ export async function authenticate(accountSlug?: string): Promise<any> {
   if (!authSuccess) {
     throw new Error('Authentication failed. Please check your credentials and try again.');
   }
-  
-  // Wait for authentication to complete
-  await new Promise<void>((resolve) => {
-    const checkInterval = setInterval(async () => {
-      if (authServer.authCompletedSuccessfully) {
-        clearInterval(checkInterval);
-        await authServer.stop();
-        resolve();
-      }
-    }, 1000);
-  });
-  
+
   return oauth2Client;
 }
 
@@ -87,42 +76,18 @@ export async function runAuthCommand(accountSlug?: string): Promise<void> {
     console.error('Google Drive MCP - Manual Authentication');
     console.error('════════════════════════════════════════\n');
 
-    // Initialize OAuth client
     const oauth2Client = await initializeOAuth2Client(accountSlug);
-
-    // Create and start the auth server
     const authServer = new AuthServer(oauth2Client, accountSlug);
-    
-    // Start with browser opening (true by default)
     const success = await authServer.start(true);
-    
-    if (!success && !authServer.authCompletedSuccessfully) {
-      // Failed to start and tokens weren't already valid
-      console.error(
-        "Authentication failed. Could not start server or validate existing tokens. Check port availability (3000-3004) and try again."
-      );
-      process.exit(1);
-    } else if (authServer.authCompletedSuccessfully) {
-      // Auth was successful (either existing tokens were valid or flow completed just now)
+
+    if (success) {
       console.error("\n✅ Authentication successful!");
       console.error("You can now use the Google Drive MCP server.");
-      process.exit(0); // Exit cleanly if auth is already done
+      process.exit(0);
+    } else {
+      console.error("Authentication failed.");
+      process.exit(1);
     }
-    
-    // If we reach here, the server started and is waiting for the browser callback
-    console.error(
-      "Authentication server started. Please complete the authentication in your browser..."
-    );
-    
-    // Wait for completion
-    const intervalId = setInterval(() => {
-      if (authServer.authCompletedSuccessfully) {
-        clearInterval(intervalId);
-        console.error("\n✅ Authentication completed successfully!");
-        console.error("You can now use the Google Drive MCP server.");
-        process.exit(0);
-      }
-    }, 1000);
   } catch (error) {
     console.error("\n❌ Authentication failed:", error);
     process.exit(1);
