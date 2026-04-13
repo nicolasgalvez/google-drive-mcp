@@ -13,6 +13,9 @@ import {
   getAccountDir,
   getAccountCredentialsPath,
   getAccountTokenPath,
+  updateAccountProject,
+  updateStepStatus,
+  getAccountSetup,
 } from '../src/accounts.js';
 
 // ---------------------------------------------------------------------------
@@ -119,6 +122,53 @@ test('getAccountTokenPath returns tokens.json in account dir', () => {
   const p = getAccountTokenPath('nick-at-simaccweb-com');
   assert.ok(p.endsWith('tokens.json'));
   assert.ok(p.includes('nick-at-simaccweb-com'));
+});
+
+// ---------------------------------------------------------------------------
+// Project and setup status tracking
+// ---------------------------------------------------------------------------
+test('updateAccountProject saves project ID', () => {
+  updateAccountProject('nick@simaccweb.com', 'my-gcp-project');
+  const setup = getAccountSetup('nick@simaccweb.com');
+  assert.equal(setup?.projectId, 'my-gcp-project');
+});
+
+test('getAccountSetup returns null for unknown email', () => {
+  assert.equal(getAccountSetup('nobody@example.com'), null);
+});
+
+test('updateStepStatus marks step as done', () => {
+  updateStepStatus('nick@simaccweb.com', 'enable-apis', 'done');
+  updateStepStatus('nick@simaccweb.com', 'branding', 'done');
+  const setup = getAccountSetup('nick@simaccweb.com');
+  assert.equal(setup?.steps['enable-apis'], 'done');
+  assert.equal(setup?.steps['branding'], 'done');
+});
+
+test('updateStepStatus marks step as failed', () => {
+  updateStepStatus('nick@simaccweb.com', 'audience', 'failed');
+  const setup = getAccountSetup('nick@simaccweb.com');
+  assert.equal(setup?.steps['audience'], 'failed');
+});
+
+test('updateStepStatus overwrites previous status', () => {
+  updateStepStatus('nick@simaccweb.com', 'audience', 'done');
+  const setup = getAccountSetup('nick@simaccweb.com');
+  assert.equal(setup?.steps['audience'], 'done');
+});
+
+test('updateStepStatus throws for unknown email', () => {
+  assert.throws(() => updateStepStatus('nobody@example.com', 'branding', 'done'), /not found/);
+});
+
+test('getAccountSetup returns projectId and steps together', () => {
+  const setup = getAccountSetup('nick@simaccweb.com');
+  assert.equal(setup?.projectId, 'my-gcp-project');
+  assert.equal(setup?.steps['enable-apis'], 'done');
+  assert.equal(setup?.steps['branding'], 'done');
+  assert.equal(setup?.steps['audience'], 'done');
+  // Steps not yet attempted are undefined
+  assert.equal(setup?.steps['scopes'], undefined);
 });
 
 // Cleanup

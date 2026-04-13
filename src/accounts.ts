@@ -15,9 +15,19 @@ import { homedir } from 'os';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
+export type StepId = 'enable-apis' | 'branding' | 'audience' | 'scopes' | 'credentials' | 'auth';
+export type StepStatus = 'done' | 'failed';
+
 interface AccountEntry {
   slug: string;
   default: boolean;
+  projectId?: string;
+  setup?: Partial<Record<StepId, StepStatus>>;
+}
+
+export interface AccountSetup {
+  projectId?: string;
+  steps: Partial<Record<StepId, StepStatus>>;
 }
 
 interface AccountRegistry {
@@ -149,4 +159,45 @@ export function getAccountCredentialsPath(slug: string): string {
  */
 export function getAccountTokenPath(slug: string): string {
   return join(getAccountDir(slug), 'tokens.json');
+}
+
+/**
+ * Save the GCP project ID for an account.
+ */
+export function updateAccountProject(email: string, projectId: string): void {
+  const registry = readRegistry();
+  if (!registry[email]) {
+    throw new Error(`Account "${email}" not found in registry`);
+  }
+  registry[email].projectId = projectId;
+  writeRegistry(registry);
+}
+
+/**
+ * Mark a setup step as done or failed for an account.
+ */
+export function updateStepStatus(email: string, stepId: StepId, status: StepStatus): void {
+  const registry = readRegistry();
+  if (!registry[email]) {
+    throw new Error(`Account "${email}" not found in registry`);
+  }
+  if (!registry[email].setup) {
+    registry[email].setup = {};
+  }
+  registry[email].setup![stepId] = status;
+  writeRegistry(registry);
+}
+
+/**
+ * Get full setup state for an account — project ID and step statuses.
+ * Returns null if account not found.
+ */
+export function getAccountSetup(email: string): AccountSetup | null {
+  const registry = readRegistry();
+  const entry = registry[email];
+  if (!entry) return null;
+  return {
+    projectId: entry.projectId,
+    steps: entry.setup || {},
+  };
 }
