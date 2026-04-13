@@ -18,7 +18,7 @@ import {
   parseAccountList,
   resolveFilePath,
   findMatchingFiles,
-  buildClaudeAssistedPlan,
+  buildSetupSteps,
   // Step functions
   resolveGcloudAccount,
   resolveProject,
@@ -225,58 +225,45 @@ test('findMatchingFiles returns multiple files sorted by mtime', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildClaudeAssistedPlan
+// buildSetupSteps
 // ---------------------------------------------------------------------------
-test('buildClaudeAssistedPlan returns all 5 browser steps', () => {
-  const plan = buildClaudeAssistedPlan('my-project') as any;
-  assert.equal(plan.steps.length, 5);
-  assert.equal(plan.steps[0].id, 'enable-apis');
-  assert.equal(plan.steps[1].id, 'branding');
-  assert.equal(plan.steps[2].id, 'audience');
-  assert.equal(plan.steps[3].id, 'scopes');
-  assert.equal(plan.steps[4].id, 'credentials');
+test('buildSetupSteps returns all 5 steps', () => {
+  const steps = buildSetupSteps('my-project', 'user@test.com');
+  assert.equal(steps.length, 5);
+  assert.equal(steps[0].id, 'enable-apis');
+  assert.equal(steps[1].id, 'branding');
+  assert.equal(steps[2].id, 'audience');
+  assert.equal(steps[3].id, 'scopes');
+  assert.equal(steps[4].id, 'credentials');
 });
 
-test('buildClaudeAssistedPlan includes project in URLs', () => {
-  const plan = buildClaudeAssistedPlan('test-proj-123') as any;
-  for (const step of plan.steps) {
+test('buildSetupSteps includes project in URLs', () => {
+  const steps = buildSetupSteps('test-proj-123', 'user@test.com');
+  for (const step of steps) {
     assert.ok(step.url.includes('test-proj-123'));
   }
 });
 
-test('buildClaudeAssistedPlan scopes step lists all required scopes', () => {
-  const plan = buildClaudeAssistedPlan('my-project') as any;
-  const scopeStep = plan.steps.find((s: any) => s.id === 'scopes');
+test('buildSetupSteps scopes step lists all required scopes', () => {
+  const steps = buildSetupSteps('my-project', 'user@test.com');
+  const scopeStep = steps.find(s => s.id === 'scopes')!;
   for (const scope of REQUIRED_SCOPES) {
     assert.ok(
-      scopeStep.actions.some((a: string) => a.includes(scope)),
+      scopeStep.actions.some(a => a.includes(scope)),
       `Missing scope: ${scope}`,
     );
   }
 });
 
-test('buildClaudeAssistedPlan includes credentialsDestination', () => {
-  const plan = buildClaudeAssistedPlan('my-project') as any;
-  assert.ok(plan.credentialsDestination.includes('gcp-oauth.keys.json'));
-});
+test('buildSetupSteps includes account email in branding and audience steps', () => {
+  const steps = buildSetupSteps('my-project', 'test@example.com');
+  const branding = steps.find(s => s.id === 'branding')!;
+  const audience = steps.find(s => s.id === 'audience')!;
 
-test('buildClaudeAssistedPlan does not include hardcoded emails when no email provided', () => {
-  const plan = buildClaudeAssistedPlan('my-project') as any;
-  const json = JSON.stringify(plan);
-  assert.ok(!json.includes('@gmail.com'));
-  assert.ok(!json.includes('@simaccweb.com'));
-});
-
-test('buildClaudeAssistedPlan includes account email in branding and audience steps', () => {
-  const plan = buildClaudeAssistedPlan('my-project', 'test@example.com') as any;
-  const branding = plan.steps.find((s: any) => s.id === 'branding');
-  const audience = plan.steps.find((s: any) => s.id === 'audience');
-
-  assert.ok(branding.actions.some((a: string) => a.includes('test@example.com')),
+  assert.ok(branding.actions.some(a => a.includes('test@example.com')),
     'branding should include account email for support email');
-  assert.ok(audience.actions.some((a: string) => a.includes('test@example.com')),
+  assert.ok(audience.actions.some(a => a.includes('test@example.com')),
     'audience should include account email as test user');
-  assert.equal(plan.accountEmail, 'test@example.com');
 });
 
 // ===========================================================================
