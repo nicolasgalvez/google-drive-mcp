@@ -15,9 +15,11 @@ import { existsSync, mkdirSync, copyFileSync, readFileSync } from 'fs';
 import { resolve, join, dirname } from 'path';
 import { homedir } from 'os';
 import {
-  slugifyEmail, addAccount,
+  slugifyEmail, addAccount, getAccountSetup,
   getAccountCredentialsPath, getAccountTokenPath,
+  updateAccountProject, updateStepStatus,
 } from './accounts.js';
+import type { StepId, StepStatus } from './accounts.js';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -567,7 +569,12 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
     if (!opts.skipBrowser) {
       await openInBrowser('https://console.cloud.google.com/projectcreate');
     }
-    const projectId = opts.projectId || await input({ message: 'Enter the project ID:' });
+    // Resolve project ID: from flag, from saved state, or prompt
+    const savedSetup = getAccountSetup(accountEmail);
+    const projectId = opts.projectId || savedSetup?.projectId || await input({ message: 'Enter the project ID:' });
+
+    // Save project ID to registry
+    updateAccountProject(accountEmail, projectId);
 
     const plan = buildClaudeAssistedPlan(projectId, accountEmail);
     let steps = (plan as any).steps as { id: string; name: string; url: string; actions: string[] }[];
@@ -609,8 +616,10 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
           { stdio: ['pipe', 'inherit', 'inherit'], input: prompt },
         );
         success(`${step.name} — done`);
+        updateStepStatus(accountEmail, step.id as StepId, 'done');
       } catch (e: any) {
         warn(`${step.name} — Claude exited with an error`);
+        updateStepStatus(accountEmail, step.id as StepId, 'failed');
         const retry = await confirm({ message: 'Continue to next step?', default: true });
         if (!retry) process.exit(1);
       }

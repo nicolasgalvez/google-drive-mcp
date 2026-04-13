@@ -502,16 +502,27 @@ async function main() {
       await runAuthServer(accountSlug);
       break;
     case "accounts": {
-      const { listAccounts } = await import('./accounts.js');
+      const { listAccounts, getAccountSetup } = await import('./accounts.js');
       const accounts = listAccounts();
       if (accounts.length === 0) {
         console.log('No accounts configured. Run: npm run setup');
       } else {
+        const ALL_STEPS = ['enable-apis', 'branding', 'audience', 'scopes', 'credentials', 'auth'] as const;
         console.log('Configured accounts:\n');
         for (const a of accounts) {
           const marker = a.default ? ' (default)' : '';
+          const setup = getAccountSetup(a.email);
           console.log(`  ${a.email}${marker}`);
-          console.log(`    slug: ${a.slug}`);
+          if (setup?.projectId) {
+            console.log(`    project: ${setup.projectId}`);
+          }
+          const stepLine = ALL_STEPS.map(s => {
+            const status = setup?.steps[s];
+            if (status === 'done') return `${s} \x1b[32m✓\x1b[0m`;
+            if (status === 'failed') return `${s} \x1b[31m✗\x1b[0m`;
+            return `${s} \x1b[2m·\x1b[0m`;
+          }).join('  ');
+          console.log(`    setup:   ${stepLine}`);
         }
       }
       break;
