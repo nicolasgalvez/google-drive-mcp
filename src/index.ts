@@ -502,7 +502,7 @@ async function main() {
       await runAuthServer(accountSlug);
       break;
     case "accounts": {
-      const { listAccounts, getAccountSetup } = await import('./accounts.js');
+      const { listAccounts, getAccountSetup, mcpServerName } = await import('./accounts.js');
       let accounts = listAccounts();
       if (account) {
         accounts = accounts.filter(a => a.email === account || a.slug === account);
@@ -516,8 +516,9 @@ async function main() {
           const marker = a.default ? ' (default)' : '';
           const setup = getAccountSetup(a.email);
           console.log(`  ${a.email}${marker}`);
+          console.log(`    mcp name: ${mcpServerName(a.email)}`);
           if (setup?.projectId) {
-            console.log(`    project: ${setup.projectId}`);
+            console.log(`    project:  ${setup.projectId}`);
           }
           const stepLine = ALL_STEPS.map(s => {
             const status = setup?.steps[s];

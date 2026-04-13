@@ -6,6 +6,7 @@ import { tmpdir } from 'os';
 
 import {
   slugifyEmail,
+  mcpServerName,
   listAccounts,
   addAccount,
   getDefaultAccount,
@@ -39,6 +40,25 @@ test('slugifyEmail handles subdomains', () => {
 
 test('slugifyEmail handles plus addressing', () => {
   assert.equal(slugifyEmail('user+tag@gmail.com'), 'user-tag-at-gmail-com');
+});
+
+// ---------------------------------------------------------------------------
+// mcpServerName
+// ---------------------------------------------------------------------------
+test('mcpServerName generates google-user-domain format', () => {
+  assert.equal(mcpServerName('nicholas.galvez@gmail.com'), 'google-nicholas-galvez-gmail');
+});
+
+test('mcpServerName handles simple email', () => {
+  assert.equal(mcpServerName('nick@simaccweb.com'), 'google-nick-simaccweb');
+});
+
+test('mcpServerName handles uppercase', () => {
+  assert.equal(mcpServerName('Nick@Example.COM'), 'google-nick-example');
+});
+
+test('mcpServerName handles plus addressing', () => {
+  assert.equal(mcpServerName('user+work@gmail.com'), 'google-user-work-gmail');
 });
 
 // ---------------------------------------------------------------------------

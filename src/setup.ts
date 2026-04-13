@@ -15,7 +15,7 @@ import { homedir } from 'os';
 import {
   slugifyEmail, addAccount, getAccountSetup,
   getAccountCredentialsPath, getAccountTokenPath,
-  updateAccountProject, updateStepStatus,
+  updateAccountProject, updateStepStatus, mcpServerName,
 } from './accounts.js';
 import type { StepId, StepStatus } from './accounts.js';
 
@@ -552,8 +552,9 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
       console.log(`  Run ${BOLD}npm run auth --account ${accountEmail}${RESET} when ready.\n`);
     }
 
+    const serverName = mcpServerName(accountEmail);
     heading('Setup Complete!');
-    console.log('  Configure your MCP client with:\n');
-    console.log(`  ${DIM}claude mcp add -s user google-drive node /path/to/dist/index.js -- --account ${accountEmail}${RESET}\n`);
+    console.log('  Add to Claude Code:\n');
+    console.log(`  ${DIM}claude mcp add -s user ${serverName} node /path/to/dist/index.js -- --account ${accountEmail}${RESET}\n`);
   }
 }
