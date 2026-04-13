@@ -402,28 +402,13 @@ async function runAuthServer(accountSlug?: string): Promise<void> {
     const authServerInstance = new AuthServer(oauth2Client, accountSlug);
     const success = await authServerInstance.start(true);
 
-    if (!success && !authServerInstance.authCompletedSuccessfully) {
-      console.error(
-        "Authentication failed. Could not start server or validate existing tokens. Check port availability (3000-3004) and try again."
-      );
-      process.exit(1);
-    } else if (authServerInstance.authCompletedSuccessfully) {
+    if (success) {
       console.log("Authentication successful.");
       process.exit(0);
+    } else {
+      console.error("Authentication failed.");
+      process.exit(1);
     }
-
-    console.log(
-      "Authentication server started. Please complete the authentication in your browser..."
-    );
-
-    const intervalId = setInterval(async () => {
-      if (authServerInstance.authCompletedSuccessfully) {
-        clearInterval(intervalId);
-        await authServerInstance.stop();
-        console.log("Authentication completed successfully!");
-        process.exit(0);
-      }
-    }, 1000);
   } catch (error) {
     console.error("Authentication failed:", error);
     process.exit(1);
