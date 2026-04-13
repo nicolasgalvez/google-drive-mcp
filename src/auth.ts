@@ -53,18 +53,15 @@ export async function authenticate(accountSlug?: string): Promise<any> {
     return oauth2Client;
   }
 
-  // No valid tokens, need to authenticate
-  console.error('\n🔐 No valid authentication tokens found.');
-  console.error('Starting authentication flow...\n');
-
-  const authServer = new AuthServer(oauth2Client, accountSlug);
-  const authSuccess = await authServer.start(true);
-  
-  if (!authSuccess) {
-    throw new Error('Authentication failed. Please check your credentials and try again.');
-  }
-
-  return oauth2Client;
+  // No valid tokens — don't open a browser automatically.
+  // The user should authenticate explicitly via `auth` command or /mcp in Claude Code.
+  throw new Error(
+    'Not authenticated. Run authentication first:\n' +
+    (accountSlug
+      ? `  node dist/index.js auth --account <email>\n`
+      : '  node dist/index.js auth\n') +
+    'Or use /mcp in Claude Code to authenticate.'
+  );
 }
 
 /**
