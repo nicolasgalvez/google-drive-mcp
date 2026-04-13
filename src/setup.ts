@@ -24,6 +24,7 @@ import {
 export interface SetupOptions {
   mode?: 'manual' | 'claude';
   account?: string;  // email address for account namespacing
+  step?: string;     // run a single step: enable-apis, branding, audience, scopes, credentials
   gcloudAccount?: string;
   skipGcloud?: boolean;
   projectId?: string;
@@ -569,10 +570,21 @@ export async function runSetup(opts: SetupOptions = {}): Promise<void> {
     const projectId = opts.projectId || await input({ message: 'Enter the project ID:' });
 
     const plan = buildClaudeAssistedPlan(projectId, accountEmail);
-    const steps = (plan as any).steps as { id: string; name: string; url: string; actions: string[] }[];
+    let steps = (plan as any).steps as { id: string; name: string; url: string; actions: string[] }[];
+
+    // Filter to a single step if --step is provided
+    if (opts.step) {
+      const match = steps.find(s => s.id === opts.step);
+      if (!match) {
+        warn(`Unknown step: ${opts.step}`);
+        console.log(`  Available steps: ${steps.map(s => s.id).join(', ')}`);
+        process.exit(1);
+      }
+      steps = [match];
+    }
 
     heading('Claude-Assisted Setup');
-    console.log('  Claude will now automate the remaining browser steps.\n');
+    console.log(`  Claude will now automate ${steps.length === 1 ? `step: ${steps[0].id}` : 'the remaining browser steps'}.\n`);
 
     for (const step of steps) {
       heading(`${step.name}`);

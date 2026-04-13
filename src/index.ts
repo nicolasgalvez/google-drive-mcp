@@ -478,6 +478,7 @@ function parseSetupArgs(): Record<string, any> {
       case '--skip-browser':  opts.skipBrowser = true; break;
       case '--skip-gcloud':   opts.skipGcloud = true; break;
       case '--create-project': opts.createProject = true; break;
+      case '--step':          opts.step = next; i++; break;
       case '--run-auth':      opts.runAuth = true; break;
       case '--no-auth':       opts.runAuth = false; break;
     }
